@@ -23,15 +23,12 @@
   #define HREF_GPIO_NUM     23
   #define PCLK_GPIO_NUM     22
 /* ======================================== Variables declaration */
-
-struct quirc *qr = NULL;
-uint8_t *image = NULL;  
 camera_fb_t * fb = NULL;
-struct quirc_code code;
-struct quirc_data data;
+struct quirc_code codee;
+struct quirc_data dataA;
 quirc_decode_error_t err;
 
-String QRCodeResult = "NULL";
+String QRCodeResult = "NANN";
 /* ======================================== */
 /* ________________________________________________________________________________  */
 void setup() {
@@ -69,7 +66,9 @@ void dumpData(const struct quirc_data *data)
   QRCodeResult = (const char *)data->payload;
 }
 void qrScan(){
- qr = quirc_new();
+struct quirc *qr;
+uint8_t *image;
+  qr = quirc_new();
   fb = esp_camera_fb_get();
   if (!fb)  Serial.println("Camera capture failed");
   quirc_resize(qr, fb->width, fb->height);
@@ -79,21 +78,20 @@ void qrScan(){
   
   int count = quirc_count(qr);
   if (count > 0) {
-    quirc_extract(qr, 0, &code);
-    err = quirc_decode(&code, &data);
+    quirc_extract(qr, 0, &codee);
+    err = quirc_decode(&codee, &dataA);
     if (err){
       Serial.println("Decoding FAILED");
-      QRCodeResult = "NULL";
+      QRCodeResult = "NANN";
     } else {
       Serial.printf("Decoding successful:\n");
-      dumpData(&data);
+      dumpData(&dataA);
     } 
     Serial.println();
   } 
 
   esp_camera_fb_return(fb);
   fb = NULL;
-  image = NULL;  
   quirc_destroy(qr);
 }
 // config cam

@@ -41,12 +41,9 @@ const char *password = "1335555777777";
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 /* ======================================== */
-
-struct quirc *qr = NULL;
-uint8_t *image = NULL;  
 camera_fb_t * fb = NULL;
-struct quirc_code code;
-struct quirc_data data;
+struct quirc_code codeE;
+struct quirc_data dataA;
 quirc_decode_error_t err;
 
 String QRCodeResult = "NANN";
@@ -54,9 +51,9 @@ String QRCodeResult = "NANN";
 unsigned long timee;
 unsigned long timeeout = 0;
 bool timeSecond = true;
-const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 25200;
-const int daylightOffset_sec = 0;
+
+
+
 const byte ROWS = 4;
 const byte COLS = 3;
 char keys[ROWS][COLS] = {
@@ -71,7 +68,6 @@ byte wifires = 0;
 byte data_count = 0;
 byte key_state = 0;
 byte mode = 4;
-// byte mode = 1;
 byte lockkk[] = {0b01110, 0b10001, 0b10001, 0b11111,
                  0b11011, 0b11011, 0b11111, 0b00000};
 byte clockkk[] = {0b01110, 0b10000, 0b10000, 0b11111,
@@ -86,7 +82,7 @@ void Lockk();
 void collectKey();
 void clearData();
 void printLocalTime();
-void dumpData(const struct quirc_data *data);
+void dumpData(const struct quirc_data *dataa);
 void qrScan();
 void Check_EEPROM();
 void configInitCamera();
@@ -158,7 +154,7 @@ Check_EEPROM();
   Serial.print("ESP32-CAM IP Address: ");
   Serial.println(WiFi.localIP());
   // time
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  configTime(25200, 0, "pool.ntp.org");
   delay(1000);
   lcd.clear();
   printLocalTime();
@@ -167,18 +163,14 @@ Check_EEPROM();
 void loop() {
   key = kpd.getKey();
   key_state = kpd.getState();
-  last_press_key = key;
+
 
   if (key) {
     if (key == '#' && mode == 4)    mode = 5;
     if (key == '*' && mode == 5)    mode = 4;
     if (mode == 4)                  mode = 0;
+    last_press_key = key;
     Serial.println(key);
-  }
-  if (mode == 3) {
-    if (last_press_key == '#' && key_state == 2) mode = 1;
-    if (last_press_key == '*' && key_state == 2) Lockk();
-    if ((timeeout != 0) && ((unsigned long)(millis() - timeeout) > 1000 * 60)) Lockk();
   }
   switch (mode){
     case 0:
@@ -188,7 +180,7 @@ void loop() {
         break;
     case 1:
         lcd.setCursor(0, 0);
-    lcd.print("Nhap MKhau Moi");
+        lcd.print("Nhap MKhau Moi");
         break;
     case 2:
         lcd.setCursor(0, 0);
@@ -211,7 +203,11 @@ void loop() {
     if (QRCodeResult == "DH32112380_NGUYENTHANHPHU_01.01.2003") Unlockk();
     break;
   }
-
+  if (mode == 3) {
+    if (last_press_key == '#' && key_state == 2) mode = 1;
+    if (last_press_key == '*' && key_state == 2) Lockk();
+    if ((timeeout != 0) && ((unsigned long)(millis() - timeeout) > 1000 * 60)) Lockk();
+  }
   if (key && key != '#' && key != '*' && mode != 3)
     collectKey();
 
@@ -296,7 +292,9 @@ void dumpData(const struct quirc_data *data)
   QRCodeResult = (const char *)data->payload;
 }
 void qrScan(){
- qr = quirc_new();
+struct quirc *qr;
+uint8_t *image;
+  qr = quirc_new();
   fb = esp_camera_fb_get();
   if (!fb)  Serial.println("Camera capture failed");
   quirc_resize(qr, fb->width, fb->height);
@@ -306,21 +304,20 @@ void qrScan(){
   
   int count = quirc_count(qr);
   if (count > 0) {
-    quirc_extract(qr, 0, &code);
-    err = quirc_decode(&code, &data);
+    quirc_extract(qr, 0, &codeE);
+    err = quirc_decode(&codeE, &dataA);
     if (err){
       Serial.println("Decoding FAILED");
-      QRCodeResult = "NULL";
+      QRCodeResult = "NANN";
     } else {
       Serial.printf("Decoding successful:\n");
-      dumpData(&data);
+      dumpData(&dataA);
     } 
     Serial.println();
   } 
 
   esp_camera_fb_return(fb);
   fb = NULL;
-  image = NULL;  
   quirc_destroy(qr);
 }
 
