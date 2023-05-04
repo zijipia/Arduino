@@ -1,8 +1,7 @@
-// them thu vien can thiet
 #include "esp_camera.h"
-#include "quirc.h"
-#include "soc/rtc_cntl_reg.h"
 #include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
+#include "quirc.h"
 #include "time.h"
 #include <Arduino.h>
 #include <EEPROM.h>
@@ -11,10 +10,10 @@
 #include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 #include <Wire.h>
-// wifi
+/* ======================================== */
 const char *ssid = "zijipia";
 const char *password = "1335555777777";
-// def
+/* ======================================== */
 #define I2Ckey 0x3F
 #define I2Clcd 0x27
 #define Password_Lenght 5
@@ -23,8 +22,7 @@ const char *password = "1335555777777";
 #define ControlOUT 4
 #define CoiBao 16
 #define PhimCamUng 13
-TaskHandle_t QRCodeReader_Task; 
-// CAMERA_MODEL_AI_THINKER
+/* ======================================== */
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM      0
@@ -42,15 +40,17 @@ TaskHandle_t QRCodeReader_Task;
 #define VSYNC_GPIO_NUM    25
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
+/* ======================================== */
 
-camera_fb_t *fb = NULL;
-uint8_t *image = NULL;
 struct quirc *qr = NULL;
+uint8_t *image = NULL;  
+camera_fb_t * fb = NULL;
 struct quirc_code code;
 struct quirc_data data;
 quirc_decode_error_t err;
-String QRCodeResult = "NANN";
 
+String QRCodeResult = "NANN";
+/* ======================================== */
 unsigned long timee;
 unsigned long timeeout = 0;
 bool timeSecond = true;
@@ -80,7 +80,7 @@ byte rowPins[ROWS] = {2, 3, 1, 4};
 byte colPins[COLS] = {5, 6, 7};
 Keypad_I2C kpd(makeKeymap(keys), rowPins, colPins, ROWS, COLS, I2Ckey, PCF8574);
 LiquidCrystal_I2C lcd(I2Clcd, 16, 2);
-// sub
+/* ________________________________________________________________________________  */
 void Unlockk();
 void Lockk();
 void collectKey();
@@ -90,17 +90,19 @@ void dumpData(const struct quirc_data *data);
 void qrScan();
 void Check_EEPROM();
 void configInitCamera();
-// setup
+/* ________________________________________________________________________________  */
 void setup() {
+  // Disable brownout detector.
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-  Wire.begin(SDA, SCL);
-  kpd.begin(makeKeymap(keys));
-
+  /* ---------------------------------------- Init serial communication speed (baud rate). */
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
-
-  Check_EEPROM();
+  /* ---------------------------------------- */
+  Wire.begin(SDA, SCL);
+  kpd.begin(makeKeymap(keys));
+  /* ---------------------------------------- */
+Check_EEPROM();
   Serial.println(Master);
   // khoi dong lcd
   lcd.begin();
@@ -160,11 +162,8 @@ void setup() {
   delay(1000);
   lcd.clear();
   printLocalTime();
-  // disconnect WiFi as it's no longer needed
-  // WiFi.disconnect(true);
-  // WiFi.mode(WIFI_OFF);
 }
-// loop
+/* ________________________________________________________________________________ */
 void loop() {
   key = kpd.getKey();
   key_state = kpd.getState();
@@ -286,6 +285,45 @@ void loop() {
     }
   }
 }
+/* ________________________________________________________________________________ */
+void dumpData(const struct quirc_data *data)
+{
+  Serial.printf("Version: %d\n", data->version);
+  Serial.printf("ECC level: %c\n", "MLHQ"[data->ecc_level]);
+  Serial.printf("Mask: %d\n", data->mask);
+  Serial.printf("Length: %d\n", data->payload_len);
+  Serial.printf("Payload: %s\n", data->payload);
+  QRCodeResult = (const char *)data->payload;
+}
+void qrScan(){
+ qr = quirc_new();
+  fb = esp_camera_fb_get();
+  if (!fb)  Serial.println("Camera capture failed");
+  quirc_resize(qr, fb->width, fb->height);
+  image = quirc_begin(qr, NULL, NULL);
+  memcpy(image, fb->buf, fb->len);
+  quirc_end(qr);
+  
+  int count = quirc_count(qr);
+  if (count > 0) {
+    quirc_extract(qr, 0, &code);
+    err = quirc_decode(&code, &data);
+    if (err){
+      Serial.println("Decoding FAILED");
+      QRCodeResult = "NULL";
+    } else {
+      Serial.printf("Decoding successful:\n");
+      dumpData(&data);
+    } 
+    Serial.println();
+  } 
+
+  esp_camera_fb_return(fb);
+  fb = NULL;
+  image = NULL;  
+  quirc_destroy(qr);
+}
+
 void Unlockk() {
   lcd.clear();
   lcd.setCursor(0, 1);
@@ -344,45 +382,6 @@ void printLocalTime() {
     lcd.print(&timeinfo, "%H:%M");
   }
 }
-//qr
-void dumpData(const struct quirc_data *data) {
-  Serial.printf("Version: %d\n", data->version);
-  Serial.printf("ECC level: %c\n", "MLHQ"[data->ecc_level]);
-  Serial.printf("Mask: %d\n", data->mask);
-  Serial.printf("Length: %d\n", data->payload_len);
-  Serial.printf("Payload: %s\n", data->payload);
-  QRCodeResult = (const char *)data->payload;
-}
-void qrScan() {
-  qr = quirc_new();
-  // fb = esp_camera_fb_get();
-  // if (!fb)
-  //   Serial.println("Camera capture failed");
-  //     Serial.println("1");
-  // quirc_resize(qr, fb->width, fb->height);
-  // image = quirc_begin(qr, NULL, NULL);
-  // memcpy(image, fb->buf, fb->len);
-  // quirc_end(qr);
-
-  // int count = quirc_count(qr);
-  // if (count > 0) {
-  //   quirc_extract(qr, 0, &code);
-  //   err = quirc_decode(&code, &data);
-  //   if (err) {
-  //     Serial.println("Decoding FAILED");
-  //     QRCodeResult = "NANN";
-  //   } else {
-  //     Serial.printf("Decoding successful:\n");
-  //     dumpData(&data);
-  //   }
-  //   Serial.println();
-  // }
-
-  // esp_camera_fb_return(fb);
-  // fb = NULL;
-  // image = NULL;
-  // quirc_destroy(qr);
-}
 // check eprom
 void Check_EEPROM() {
   EEPROM.begin(12);
@@ -427,9 +426,6 @@ void configInitCamera() {
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
     Serial.printf("Camera init failed with error 0x%x", err);
-    lcd.clear();
-    lcd.setCursor(2, 0);
-    lcd.print("Loi Camera!");
     delay(1000);
     ESP.restart();
   }
