@@ -11,17 +11,17 @@
 #include <WiFi.h>
 #include <Wire.h>
 /* ======================================== */
-const char *ssid = "zijipia";
-const char *password = "1335555777777";
+const char *ssid = "Nha Tro Tien Nghi P19";
+const char *password = "123456789";
 /* ======================================== */
-#define I2Ckey 0x3F
-#define I2Clcd 0x27
-#define Password_Lenght 5
-#define SDA 15
-#define SCL 14
-#define ControlOUT 4
-#define CoiBao 16
-#define PhimCamUng 13
+#define I2Ckey            0x3F
+#define I2Clcd            0x27
+#define Password_Lenght   5
+#define SDA               15
+#define SCL               14
+#define ControlOUT        4
+#define CoiBao            16
+#define PhimCamUng        13
 /* ======================================== */
 #define PWDN_GPIO_NUM     32
 #define RESET_GPIO_NUM    -1
@@ -166,15 +166,14 @@ void loop() {
 
 
   if (key) {
-    if (key == '#' && mode == 4)    mode = 5;
-    if (key == '*' && mode == 5)    mode = 4;
-    if (mode == 4)                  mode = 0;
+    if (key == '#' && mode == 4)                 mode = 5;
+    if (key == '*' && mode == 5){ lcd.clear();   mode = 4;
+      }else if (mode == 4){       lcd.clear();   mode = 0;}
     last_press_key = key;
     Serial.println(key);
   }
   switch (mode){
     case 0:
-        lcd.clear();
         lcd.setCursor(0, 0);
         lcd.print("Nhap Mat Khau:");
         break;
@@ -196,10 +195,10 @@ void loop() {
         if ((unsigned long)(millis() - timee) > 1000) {
             timee = millis();
             printLocalTime();
-        break;
     }
+        break;
     case 5:
-    if (QRCodeResult == "NANN") qrScan();
+    if (QRCodeResult == "NANN") Serial.println("ok"); //qrScan();
     if (QRCodeResult == "DH32112380_NGUYENTHANHPHU_01.01.2003") Unlockk();
     break;
   }
@@ -208,12 +207,13 @@ void loop() {
     if (last_press_key == '*' && key_state == 2) Lockk();
     if ((timeeout != 0) && ((unsigned long)(millis() - timeeout) > 1000 * 60)) Lockk();
   }
-  if (key && key != '#' && key != '*' && mode != 3)
+  if (key && key != '#' && key != '*' && mode != 3 && mode != 5)
     collectKey();
 
   if (!digitalRead(PhimCamUng)) {
     if ((mode == 0) || (mode == 4)) {
       Unlockk();
+      clearData();
     } else if (mode == 3) {
       Lockk();
     }
