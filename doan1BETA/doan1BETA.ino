@@ -98,7 +98,7 @@ void setup() {
   Wire.begin(SDA, SCL);
   kpd.begin(makeKeymap(keys));
   /* ---------------------------------------- */
-Check_EEPROM();
+  Check_EEPROM();
   Serial.println(Master);
   // khoi dong lcd
   lcd.begin();
