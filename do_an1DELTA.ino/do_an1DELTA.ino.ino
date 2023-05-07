@@ -1,3 +1,4 @@
+/* ======================================== Thu Vien */
 #include "esp_camera.h"
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
@@ -10,10 +11,10 @@
 #include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 #include <Wire.h>
-/* ======================================== */
+/* ======================================== Wifi */
 const char *ssid = "Nha Tro Tien Nghi P19";
 const char *password = "123456789";
-/* ======================================== */
+/* ======================================== define */
 #define I2Ckey            0x3F
 #define I2Clcd            0x27
 #define Password_Lenght   5
@@ -22,45 +23,49 @@ const char *password = "123456789";
 #define ControlOUT        12
 #define CoiBao            2
 #define PhimCamUng        13
-/* ======================================== */
-  #define PWDN_GPIO_NUM     32
-  #define RESET_GPIO_NUM    -1
-  #define XCLK_GPIO_NUM      0
-  #define SIOD_GPIO_NUM     26
-  #define SIOC_GPIO_NUM     27
-  
-  #define Y9_GPIO_NUM       35
-  #define Y8_GPIO_NUM       34
-  #define Y7_GPIO_NUM       39
-  #define Y6_GPIO_NUM       36
-  #define Y5_GPIO_NUM       21
-  #define Y4_GPIO_NUM       19
-  #define Y3_GPIO_NUM       18
-  #define Y2_GPIO_NUM        5
-  #define VSYNC_GPIO_NUM    25
-  #define HREF_GPIO_NUM     23
-  #define PCLK_GPIO_NUM     22
-/* ======================================== Variables declaration */
+/* ======================================== Cam Pin */
+#define PWDN_GPIO_NUM     32
+#define RESET_GPIO_NUM    -1
+#define XCLK_GPIO_NUM      0
+#define SIOD_GPIO_NUM     26
+#define SIOC_GPIO_NUM     27
+
+#define Y9_GPIO_NUM       35
+#define Y8_GPIO_NUM       34
+#define Y7_GPIO_NUM       39
+#define Y6_GPIO_NUM       36
+#define Y5_GPIO_NUM       21
+#define Y4_GPIO_NUM       19
+#define Y3_GPIO_NUM       18
+#define Y2_GPIO_NUM        5
+#define VSYNC_GPIO_NUM    25
+#define HREF_GPIO_NUM     23
+#define PCLK_GPIO_NUM     22
+/* ======================================== Variables */
 camera_fb_t * fb = NULL;
+quirc_decode_error_t err;
 struct quirc_code codee;
 struct quirc_data dataA;
-quirc_decode_error_t err;
-
-String QRCodeResult = "NANN";
-/* ======================================== */
 unsigned long timee;
+unsigned long time2eout;
 unsigned long timeeout = 0;
 bool timeSecond = true;
 const byte ROWS = 4;
 const byte COLS = 3;
+char key;
+char last_press_key;
+char FistTimePassword[] = {'1', '2', '3', '4'};
 char keys[ROWS][COLS] = {
-    {'1', '2', '3'}, {'4', '5', '6'}, {'7', '8', '9'}, {'*', '0', '#'}};
+    {'1', '2', '3'},
+    {'4', '5', '6'},
+    {'7', '8', '9'},
+    {'*', '0', '#'}
+  };
 char Data[Password_Lenght];
 char Data2[Password_Lenght];
 char Master[Password_Lenght];
-char FistTimePassword[] = {'1', '2', '3', '4'};
-char key;
-char last_press_key;
+String QRCodeResult = "NANN";
+String QRcodePass;
 byte wifires = 0;
 byte data_count = 0;
 byte key_state = 0;
@@ -73,39 +78,38 @@ byte rowPins[ROWS] = {2, 3, 1, 4};
 byte colPins[COLS] = {5, 6, 7};
 Keypad_I2C kpd(makeKeymap(keys), rowPins, colPins, ROWS, COLS, I2Ckey, PCF8574);
 LiquidCrystal_I2C lcd(I2Clcd, 16, 2);
-/* ________________________________________________________________________________  */
+/* ________________________________________________________________________________ */
+/* ________________________________________________________________________________ */
 void setup() {
-  // Disable brownout detector.
+  /* __________________________________________ Disable brownout detector. */
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-  /* ---------------------------------------- */
+  /* __________________________________________ Serial */
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
-  /* ---------------------------------------- */
-  // khoa (lock)
+  /* __________________________________________ pinMode */
   pinMode(ControlOUT, OUTPUT);
-  digitalWrite(ControlOUT, LOW);
-  // // chip
   pinMode(CoiBao, OUTPUT);
-  digitalWrite(CoiBao, LOW);
-  // nut an
   pinMode(PhimCamUng, INPUT);
-  /* ---------------------------------------- */
+  digitalWrite(ControlOUT, LOW);
+  digitalWrite(CoiBao, LOW);
+  /* __________________________________________ I2C */
   Wire.begin(SDA, SCL);
   kpd.begin(makeKeymap(keys));
-  /* ---------------------------------------- Camera configuration. */
+  /* __________________________________________ Camera config */
   configInitCamera();
+  /* __________________________________________ EEPROM. */
   Check_EEPROM();
   Serial.println(Master);
   Serial.println();
-  /* ---------------------------------------- */
+  /* __________________________________________ LCD */
   lcd.begin();
   lcd.createChar(0, lockkk);
   lcd.createChar(1, clockkk);
   lcd.home();
   lcd.clear();
   lcd.backlight();
-   // Ket noi Wi-Fi
+  /* __________________________________________ Wi-Fi */
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
@@ -133,7 +137,6 @@ void setup() {
       ESP.restart();
     }
   }
-  timee = millis();
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Da Ket Noi WIFI!");
@@ -141,22 +144,33 @@ void setup() {
   Serial.println();
   Serial.print("ESP32-CAM IP Address: ");
   Serial.println(WiFi.localIP());
-  // time
+  /* __________________________________________ TIME */
+  timee = millis();
   configTime(25200, 0, "pool.ntp.org");
   delay(1000);
   lcd.clear();
-  printLocalTime();
+  printLocalTime(0);
 }
+/* ________________________________________________________________________________ */
 /* ________________________________________________________________________________ */
 void loop() {
   key = kpd.getKey();
   key_state = kpd.getState();
 
-
   if (key) {
-    if (key == '#' && mode == 4)                 mode = 5;
-    if (key == '*' && mode == 5){ lcd.clear();   mode = 4;
-      }else if (mode == 4){       lcd.clear();   mode = 0;}
+    if (key == '#' && mode == 4){ 
+      lcd.clear();
+      lcd.setCursor(3, 0);
+      lcd.print("Quet Ma QR:");
+      mode = 5;
+      }
+    if (key == '*' && mode == 5){
+      lcd.clear();
+      mode = 4;
+      }else if (mode == 4){
+        lcd.clear();
+        mode = 0;
+        }
     last_press_key = key;
     Serial.println(key);
   }
@@ -174,30 +188,69 @@ void loop() {
         lcd.print("Nhap Lai MK");
         break;
     case 3:
-        lcd.setCursor(0, 0);
-        lcd.write(1);
-        lcd.setCursor(3, 0);
-        lcd.print("Da Mo Khoa!");
+        if ((unsigned long)(millis() - timee) > 1000) {
+            timee = millis();
+            printLocalTime(1);
+    }
         break;
     case 4:
         if ((unsigned long)(millis() - timee) > 1000) {
             timee = millis();
-            printLocalTime();
+            printLocalTime(0);
     }
         break;
     case 5:
-    if (QRCodeResult == "NANN") Serial.println("ok"); //qrScan();
-    if (QRCodeResult == "DH32112380_NGUYENTHANHPHU_01.01.2003") Unlockk();
+    if (QRCodeResult == "NANN"){
+      qrScan();
+      break;
+       }
+    if (QRCodeResult == QRcodePass){
+      QRCodeResult = "NANN";
+      Unlockk();
+      }else{
+      lcd.setCursor(4, 1);
+      lcd.print("Sai QR!");
+      delay(1000);
+      lcd.clear();
+      lcd.setCursor(3, 0);
+      lcd.print("Quet Ma QR:");
+      }
+    break;
+    case 6:
+    if (QRCodeResult == "NANN"){ qrScan();
+    }else{
+      lcd.clear();
+      writeStringToEEPROM(10, QRCodeResult);
+      QRcodePass = readStringFromEEPROM(10);
+      QRCodeResult == "NANN";
+      mode = 3;
+    }
     break;
   }
+
+  if (last_press_key == '#' && key_state == 2 && mode == 1) {
+      lcd.clear();
+      lcd.setCursor(3, 0);
+      lcd.print("Cai Dat QR!");
+      lcd.setCursor(3, 1);
+      lcd.print("Quet Ma QR:");
+      mode = 6;
+    }
   if (mode == 3) {
     if (last_press_key == '#' && key_state == 2) mode = 1;
     if (last_press_key == '*' && key_state == 2) Lockk();
     if ((timeeout != 0) && ((unsigned long)(millis() - timeeout) > 1000 * 60)) Lockk();
   }
+  if (mode == 0) {
+    if ((key && key == '*') || ((unsigned long)(millis() - time2eout) > 1000 * 60)){
+      mode = 4;
+      clearData();
+      lcd.clear();
+      }
+  }
   if (key && key != '#' && key != '*' && mode != 3 && mode != 5)
     collectKey();
-
+    
   if (!digitalRead(PhimCamUng)) {
     if ((mode == 0) || (mode == 4)) {
       Unlockk();
@@ -211,7 +264,6 @@ void loop() {
     if (mode == 0) {
       lcd.clear();
       Serial.println(Master);
-
       if (!strcmp(Data, Master)) {
         Unlockk();
       } else {
@@ -270,9 +322,8 @@ void loop() {
   }
 }
 /* ________________________________________________________________________________ */
-/* ________________________________________________________________________________ */
-void dumpData(const struct quirc_data *data)
-{
+/* ________________________________________________________________________________ QR - quirc */
+void dumpData(const struct quirc_data *data) {
   Serial.printf("Version: %d\n", data->version);
   Serial.printf("ECC level: %c\n", "MLHQ"[data->ecc_level]);
   Serial.printf("Mask: %d\n", data->mask);
@@ -299,7 +350,7 @@ uint8_t *image;
       Serial.println("Decoding FAILED");
       QRCodeResult = "NANN";
     } else {
-      Serial.printf("Decoding successful:\n");
+      Serial.printf("OK:\n");
       dumpData(&dataA);
     } 
     Serial.println();
@@ -308,6 +359,111 @@ uint8_t *image;
   esp_camera_fb_return(fb);
   fb = NULL;
   quirc_destroy(qr);
+}
+/* ________________________________________________________________________________ main func */
+void Unlockk() {
+  lcd.clear();
+  lcd.setCursor(0, 1);
+  lcd.write(1);
+  lcd.setCursor(4, 0);
+  lcd.print("Xin Chao!");
+  digitalWrite(ControlOUT, HIGH);
+  digitalWrite(CoiBao, HIGH);
+  delay(50);
+  digitalWrite(CoiBao, LOW);
+  delay(100);
+  digitalWrite(CoiBao, HIGH);
+  delay(50);
+  digitalWrite(CoiBao, LOW);
+  delay(800);
+  timeeout = millis();
+  lcd.clear();
+  mode = 3;
+}
+void Lockk() {
+  timeeout = 0;
+  mode = 4;
+  lcd.clear();
+  lcd.setCursor(4, 0);
+  lcd.print("Da Khoa");
+  digitalWrite(ControlOUT, LOW);
+  digitalWrite(CoiBao, HIGH);
+  delay(200);
+  digitalWrite(CoiBao, LOW);
+  delay(1000);
+}
+void collectKey() {
+  time2eout = millis();
+  Data[data_count] = key;
+  lcd.setCursor(4 + data_count, 1);
+  lcd.print("*");
+  digitalWrite(CoiBao, HIGH);
+  delay(100);
+  digitalWrite(CoiBao, LOW);
+  data_count++;
+}
+
+void clearData() {
+  lcd.clear();
+  while (data_count != 0) {
+    Data[data_count--] = 0;
+  }
+}
+/* __________________________________________ TIME */
+void printLocalTime(int lockkk) {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    lcd.setCursor(2, 0);
+    lcd.print("Loading Time");
+    Serial.println("Failed to obtain time");
+    return;
+  }
+  timeSecond = !timeSecond;
+  lcd.setCursor(2, 0);
+  lcd.print(&timeinfo, "%a/%d/%m/%y");
+  lcd.setCursor(0, 1);
+  lcd.write(lockkk);
+  lcd.setCursor(6, 1);
+  if (timeSecond) {
+    lcd.print(&timeinfo, "%H %M");
+  } else {
+    lcd.print(&timeinfo, "%H:%M");
+  }
+}
+/* __________________________________________ EEPROM */
+void writeStringToEEPROM(int addrOffset, const String &strToWrite)
+{
+  byte len = strToWrite.length();
+  EEPROM.write(addrOffset, len);
+  for (int i = 0; i < len; i++)
+  {
+    EEPROM.write(addrOffset + 1 + i, strToWrite[i]);
+  }
+  EEPROM.commit();
+}
+String readStringFromEEPROM(int addrOffset)
+{
+  int newStrLen = EEPROM.read(addrOffset);
+  char dataaa[newStrLen + 1];
+  for (int i = 0; i < newStrLen; i++)
+  {
+    dataaa[i] = EEPROM.read(addrOffset + 1 + i);
+  }
+  dataaa[newStrLen] = '\0'; // !!! NOTE !!! Remove the space between the slash "/" and "0" (I've added a space because otherwise there is a display bug)
+  return String(dataaa);
+}
+void Check_EEPROM() {
+  EEPROM.begin(50);
+  EEPROM.get(0, Master);
+  QRcodePass = readStringFromEEPROM(10);
+  Serial.println(QRcodePass);
+  Serial.println(Master);
+  if (Master[0] == 0 && Master[1] == 0 && Master[2] == 0 && Master[3] == 0) {
+    Serial.println("No EEPROM PASSWORD FOUND");
+    EEPROM.put(0, FistTimePassword);
+    EEPROM.get(0, Master);
+    EEPROM.commit();
+  }
 }
 /* ________________________________________________________________________________ config cam */ 
 void configInitCamera() {
@@ -341,6 +497,9 @@ void configInitCamera() {
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
     Serial.printf("Camera init failed with error 0x%x", err);
+    lcd.clear();
+    lcd.setCursor(2, 0);
+    lcd.print("Loi Camera!");
     delay(1000);
     ESP.restart();
   }
@@ -350,75 +509,4 @@ void configInitCamera() {
 
   Serial.println("Configure and initialize the camera successfully.");
   Serial.println();
-}
-/* ________________________________________________________________________________ */
-void Unlockk() {
-  lcd.clear();
-  lcd.setCursor(0, 1);
-  lcd.write(1);
-  lcd.setCursor(4, 0);
-  lcd.print("Xin Chao!");
-  digitalWrite(ControlOUT, HIGH);
-  delay(1000);
-  timeeout = millis();
-  lcd.clear();
-  mode = 3;
-}
-void Lockk() {
-  QRCodeResult = "NANN";
-  timeeout = 0;
-  mode = 4;
-  lcd.clear();
-  lcd.setCursor(4, 0);
-  lcd.print("Da Khoa");
-  digitalWrite(ControlOUT, LOW);
-  delay(1000);
-}
-void collectKey() {
-  Data[data_count] = key;
-  lcd.setCursor(4 + data_count, 1);
-  lcd.print("*");
-  digitalWrite(CoiBao, HIGH);
-  delay(50);
-  digitalWrite(CoiBao, LOW);
-  data_count++;
-}
-
-void clearData() {
-  while (data_count != 0) {
-    Data[data_count--] = 0;
-  }
-}
-// print time
-void printLocalTime() {
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    lcd.setCursor(2, 0);
-    lcd.print("Loading Time");
-    Serial.println("Failed to obtain time");
-    return;
-  }
-  timeSecond = !timeSecond;
-  lcd.setCursor(2, 0);
-  lcd.print(&timeinfo, "%a/%d/%m/%y");
-  lcd.setCursor(0, 1);
-  lcd.write(0);
-  lcd.setCursor(6, 1);
-  if (timeSecond) {
-    lcd.print(&timeinfo, "%H %M");
-  } else {
-    lcd.print(&timeinfo, "%H:%M");
-  }
-}
-// check eprom
-void Check_EEPROM() {
-  EEPROM.begin(12);
-  EEPROM.get(0, Master);
-  Serial.println(Master);
-  if (Master[0] == 0 && Master[1] == 0 && Master[2] == 0 && Master[3] == 0) {
-    Serial.println("No EEPROM PASSWORD FOUND");
-    EEPROM.put(0, FistTimePassword);
-    EEPROM.get(0, Master);
-    EEPROM.commit();
-  }
 }
