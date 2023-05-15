@@ -150,10 +150,19 @@ void setup() {
   Serial.println(WiFi.localIP());
   /* __________________________________________ TIME */
   timee = millis();
-  configTime(25200, 0, "pool.ntp.org");
-  delay(1000);
   lcd.clear();
-  printLocalTime(0);
+  configTime(25200, 0, "pool.ntp.org");
+  delay(100);
+  struct tm timeinfofist;
+  lcd.setCursor(2, 0);
+  lcd.print("Loading Time");
+  while (!getLocalTime(&timeinfofist)) {
+    lcd.setCursor(2, 0);
+    lcd.print("Loading Time");
+    Serial.println("Failed to obtain time");
+    delay(500);
+  }
+  lcd.clear();
 }
 /* ________________________________________________________________________________ */
 /* ________________________________________________________________________________ */
@@ -200,12 +209,12 @@ void loop() {
       break;
        }
     if (QRCodeResult == QRcodePass){
-      QRCodeResult = "NANN";
       Unlockk();
       }else{
       lcd.setCursor(4, 1);
       lcd.print("Sai QR!");
       delay(1000);
+      QRCodeResult = "NANN";
       timeeout = millis();
       lcd.clear();
       lcd.setCursor(3, 0);
@@ -379,6 +388,7 @@ uint8_t *image;
 }
 /* ________________________________________________________________________________ main func */
 void Unlockk() {
+  QRCodeResult = "NANN";
   lcd.clear();
   lcd.setCursor(0, 1);
   lcd.write(1);
@@ -439,12 +449,6 @@ void clearData() {
 /* __________________________________________ TIME */
 void printLocalTime(int lockkk) {
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    lcd.setCursor(2, 0);
-    lcd.print("Loading Time");
-    Serial.println("Failed to obtain time");
-    return;
-  }
   timeSecond = !timeSecond;
   lcd.setCursor(2, 0);
   lcd.print(&timeinfo, "%a/%d/%m/%y");
