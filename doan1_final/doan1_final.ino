@@ -150,19 +150,10 @@ void setup() {
   Serial.println(WiFi.localIP());
   /* __________________________________________ TIME */
   timee = millis();
-  lcd.clear();
   configTime(25200, 0, "pool.ntp.org");
-  delay(100);
-  struct tm timeinfofist;
-  lcd.setCursor(2, 0);
-  lcd.print("Loading Time");
-  while (!getLocalTime(&timeinfofist)) {
-    lcd.setCursor(2, 0);
-    lcd.print("Loading Time");
-    Serial.println("Failed to obtain time");
-    delay(500);
-  }
+  delay(1000);
   lcd.clear();
+  printLocalTime(0);
 }
 /* ________________________________________________________________________________ */
 /* ________________________________________________________________________________ */
@@ -449,6 +440,12 @@ void clearData() {
 /* __________________________________________ TIME */
 void printLocalTime(int lockkk) {
   struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    lcd.setCursor(2, 0);
+    lcd.print("Loading Time");
+    Serial.println("Failed to obtain time");
+    return;
+  }
   timeSecond = !timeSecond;
   lcd.setCursor(2, 0);
   lcd.print(&timeinfo, "%a/%d/%m/%y");
