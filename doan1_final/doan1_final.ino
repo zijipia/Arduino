@@ -493,6 +493,7 @@ void collectKey() {
 }
 
 void clearData() {
+  time2eout =0;
   lcd.clear();
   while (data_count != 0) {
     Data[data_count--] = 0;

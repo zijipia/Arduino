@@ -1,3 +1,5 @@
+// 1 GIỜ 35 PHÚT SÁNG NGÀY 24/05/2023
+
 #include <Keypad.h> // thư viện bàn phím
 
 #include <EEPROM.h> // thư viện eeprom
@@ -103,47 +105,41 @@ void MAN_HINH_CHO(){
 }
   
 void loop(){
-  customkey = customKeypad.getKey();
-  Serial.println(vitri);
-  QUET_THE();
-  TIME_OPEN();
-  if(customkey == 'u'){lcd.clear();
-  while(1) {   TIME_OPEN();
-  customkey = customKeypad.getKey();
-  if(customkey == 'u'){
-    vitri ++; delay(10); lcd.clear();} 
-    if(vitri < 3){
-    lcd.setCursor(1,0);
-    lcd.print("NHAP MAT KHAU");
-    lcd.setCursor(1,1);
-    lcd.print("DOI MAT KHAU");
 
-    lcd.setCursor(0,vitri-1);
-    lcd.print(">");  }
+  customkey = customKeypad.getKey();
+
+  QUET_THE(); // CT quét thẻ từ
+
+  if(customkey && customkey ^ 'u' && customkey ^ 's') { lcd.clear(); XAC_THUC_MK(); delay(1000); lcd.clear();MAN_HINH_CHO(); }
+
+  if(customkey == 'u'){ lcd.clear();MAT_KHAU_CT(); delay(1000); lcd.clear();
+  if(luuxacthuc == 4) {
+  while(1) {
+  customkey = customKeypad.getKey();
+  if(customkey == 'u'){ vitri ++; delay(10); lcd.clear();} 
+    if(vitri < 3){
+    lcd.setCursor(1,0); lcd.print("DOI MAT KHAU");
+    lcd.setCursor(1,1); lcd.print("THEM ID THE");
+
+    lcd.setCursor(0,vitri-1); lcd.print(">");  }
 
     if(vitri > 2 && vitri < 5){
-    lcd.setCursor(1,0);
-    lcd.print("THEM ID THE TU");
-    lcd.setCursor(1,1);
-    lcd.print("XOA ID THE TU");
+    lcd.setCursor(1,0); lcd.print("XOA ID THE");
+    lcd.setCursor(1,1); lcd.print("RESET HE THONG");
+    lcd.setCursor(0,vitri-3); lcd.print(">"); }
 
-    lcd.setCursor(0,vitri-3);
-    lcd.print(">");
-    }
+    if( vitri == 5){
+    lcd.setCursor(1,0); lcd.print("THOAT MENU");
+    lcd.setCursor(0,vitri-5); lcd.print(">");   }
 
-    if(vitri == 5){
-    lcd.setCursor(1,0);
-    lcd.print("RESET HE THONG");
-    lcd.setCursor(0,vitri-5);
-    lcd.print(">");}
+    if(vitri == 6) { vitri = 1; } Serial.print("VI TRI: "); Serial.println(vitri); 
 
-    if(vitri == 6) { vitri = 1; MAN_HINH_CHO(); break;  } Serial.print("VI TRI: "); Serial.println(vitri); 
-
-    if(vitri == 1 && customkey == 's' ) { lcd.clear(); XAC_THUC_MK(); delay(500); vitri == 1; lcd.clear(); }
-    if(vitri == 2 && customkey == 's' ) { lcd.clear(); DOI_MAT_KHAU();delay(500); vitri == 2;lcd.clear(); }
-    if(vitri == 3 && customkey == 's' ) { lcd.clear(); delay(100); while(1) { THEM_ID(); customkey = customKeypad.getKey(); if(customkey == 'u') { break; } }  delay(1000);  vitri == 3; lcd.clear(); }
-    if(vitri == 4 && customkey == 's' ) { lcd.clear(); delay(100); while(1) { XOA_ID(); customkey = customKeypad.getKey(); if(customkey == 'u') { break; } }  delay(1000); vitri == 4; lcd.clear(); }
-    if(vitri == 5 && customkey == 's' ) { lcd.clear(); delay(100); RESET_HE_THONG(); delay(1000); break; vitri == 5; lcd.clear();}  } }
+    if(vitri == 1 && customkey == 's' ) { lcd.clear(); DOI_MAT_KHAU();delay(500); vitri = 1;lcd.clear(); }
+    if(vitri == 2 && customkey == 's' ) { lcd.clear(); delay(100); while(1) { THEM_ID(); customkey = customKeypad.getKey(); if(customkey == 'u') { break; } }  delay(1000);  vitri = 2; lcd.clear(); }
+    if(vitri == 3 && customkey == 's' ) { lcd.clear(); delay(100); while(1) { XOA_ID(); customkey = customKeypad.getKey(); if(customkey == 'u') { break; } }  delay(1000); vitri = 3; lcd.clear(); }
+    if(vitri == 4 && customkey == 's' ) { lcd.clear(); delay(100); RESET_HE_THONG(); delay(1000); vitri = 1; lcd.clear(); break; }
+    if(vitri == 5 && customkey == 's' ) { lcd.clear(); delay(500); vitri = 1; MAN_HINH_CHO(); break; } } } }
+    else { MAN_HINH_CHO(); }
 }
 
 void QUET_THE(){
@@ -152,11 +148,24 @@ void QUET_THE(){
   if (rfid.uid.uidByte[0] == EEPROM.read(10+idquet) && rfid.uid.uidByte[1] == EEPROM.read(11+idquet) && rfid.uid.uidByte[2] == EEPROM.read(12+idquet) && rfid.uid.uidByte[3] == EEPROM.read(13+idquet) ){
   ktid = true; Serial.print(" ID QUET : "); Serial.println(idquet+10); idquet = EEPROM.read(5); } else { ktid = false; } }
 
-  if( ktid == true ) {lcd.clear(); lcd.setCursor(3, 0); lcd.print("THE HOP LE"); analogWrite(A0, 255); delay(500);lcd.clear(); MAN_HINH_CHO();
+  if( ktid == true ) {lcd.clear(); lcd.setCursor(3, 0); lcd.print("THE HOP LE"); analogWrite(A0, 255); delay(3000); analogWrite(A0, 0); lcd.clear(); MAN_HINH_CHO();
   }
   else { ktid = false; lcd.clear(); lcd.setCursor(1, 0); lcd.print("KHONG TIM THAY"); analogWrite(A0, 0); delay(500); lcd.clear(); MAN_HINH_CHO();}
   Serial.print(" KT ID : "); Serial.println(ktid); 
   rfid.PICC_HaltA();rfid.PCD_StopCrypto1();
+}
+
+void MAT_KHAU_CT(){
+  byte xacthuc = 0;
+  lcd.setCursor(0,0);lcd.print("NHAP MAT KHAU !");
+  lcd.setCursor(0,1);lcd.print("MAT KHAU:_ _ _ _");
+
+  NHAP_MAT_KHAU();
+
+  for(int i = 0; i < 4; i++){
+    if( ((char)EEPROM.read(i)) == matkhau[i]){ xacthuc++; Serial.println(xacthuc);} }
+    if(xacthuc == 4) { lcd.clear(); lcd.setCursor(0,0); lcd.print(" MAT KHAU DUNG ");}
+    if(xacthuc != 4) { lcd.clear(); lcd.setCursor(1,0); lcd.print(" MAT KHAU SAI !");lcd.setCursor(0,1);lcd.print("VUI LONG THU LAI");  }  luuxacthuc = xacthuc; xacthuc = 0;
 }
 
 void XAC_THUC_MK(){
@@ -165,20 +174,23 @@ void XAC_THUC_MK(){
   lcd.setCursor(0,1);lcd.print("MAT KHAU:_ _ _ _");
 
   NHAP_MAT_KHAU();
-  TIME_OPEN();
 
   for(int i = 0; i < 4; i++){
     if( ((char)EEPROM.read(i)) == matkhau[i]){ xacthuc++; Serial.println(xacthuc);} }
-    if(xacthuc == 4) { lcd.clear(); lcd.setCursor(0,0); lcd.print(" MAT KHAU DUNG ");lcd.setCursor(1,1);lcd.print("MO KHOA CUA 5s"); analogWrite(A0, 255);}
+    if(xacthuc == 4) { lcd.clear(); lcd.setCursor(0,0); lcd.print(" MAT KHAU DUNG ");lcd.setCursor(1,1);lcd.print("MO KHOA CUA 3s"); analogWrite(A0, 255); delay(3000); analogWrite(A0, 0);}
     if(xacthuc != 4) { lcd.clear(); lcd.setCursor(1,0); lcd.print(" MAT KHAU SAI !");lcd.setCursor(0,1);lcd.print("VUI LONG THU LAI");  }  luuxacthuc = xacthuc; xacthuc = 0;
 }
 
 void DOI_MAT_KHAU(){
-  XAC_THUC_MK(); analogWrite(A0, 0); delay(1000);
+  MAT_KHAU_CT(); delay(500);
   if(luuxacthuc == 4) { lcd.clear(); TAO_MAT_KHAU(); } luuxacthuc = 0;
 }
 
 void THEM_ID(){
+
+  if(EEPROM.read(5) > 50) { lcd.setCursor(1,1); lcd.print("FULL"); }
+  else {
+
   lcd.setCursor(1,0); lcd.print("DAT THE VAO !");
 
   if ( ! rfid.PICC_IsNewCardPresent() || ! rfid.PICC_ReadCardSerial()) { return; }
@@ -189,7 +201,7 @@ void THEM_ID(){
 
   Serial.print(" KT ID : "); Serial.println(ktid);
   
-  if(ktid == true) { lcd.clear(); lcd.setCursor(0,1); lcd.print("THE DA DUOC LUU");  }
+  if(ktid == true) { lcd.clear(); lcd.setCursor(0,0); lcd.print("THE DA DUOC LUU"); delay(500); lcd.clear(); }
 
   if(ktid  == false) {lcd.clear();
   for(int i = 0; i < 4; i++){
@@ -197,9 +209,9 @@ void THEM_ID(){
   EEPROM.write(EEPROM.read(5) + i,nuidPICC[i]); delay(5);
   Serial.print("Ô NHỚ THỨ "); Serial.print(EEPROM.read(5) + i);Serial.print(" ID "); Serial.println(EEPROM.read(i + EEPROM.read(5) ) ); }
   EEPROM.write(5, EEPROM.read(5) + 4);
-  lcd.setCursor(1,1); lcd.print("DA LUU THE MOI"); }
+  lcd.setCursor(1,0); lcd.print("DA LUU THE MOI"); delay(500); lcd.clear();   }
 
-  rfid.PICC_HaltA();rfid.PCD_StopCrypto1();
+  rfid.PICC_HaltA();rfid.PCD_StopCrypto1(); }
 }
 
 void KIEM_TRA_ID(){
@@ -215,6 +227,8 @@ void KIEM_TRA_ID(){
 void XOA_ID(){
   int idquet = 0 ; 
   lcd.setCursor(1,0); lcd.print("DAT THE VAO !");
+  lcd.setCursor(1,0); lcd.print("");
+
   if ( ! rfid.PICC_IsNewCardPresent() || ! rfid.PICC_ReadCardSerial()) { return; }
 
   for(idquet = 0; idquet < EEPROM.read(5); idquet=idquet+4){
@@ -226,10 +240,10 @@ void XOA_ID(){
   for(int i = 0; i < 4; i++){
   EEPROM.write(idquet + 10 + i ,0); delay(5);
   Serial.print("Ô NHỚ THỨ ");  Serial.println(idquet + 10 + i ); Serial.println(" GIA TRI: "); Serial.println( EEPROM.read(idquet + 10 + i) ); }
-  lcd.setCursor(2,1); lcd.print("DA XOA THE"); }
+  lcd.setCursor(3,0); lcd.print("DA XOA THE"); delay(500); lcd.clear();}
   else { 
-  lcd.clear(); lcd.setCursor(1, 1); lcd.print("KHONG TIM THAY");
-  }
+  lcd.clear(); lcd.setCursor(1, 0); lcd.print("KHONG TIM THAY"); delay(500); lcd.clear();
+  } 
 
   rfid.PICC_HaltA();rfid.PCD_StopCrypto1();
 
@@ -251,12 +265,6 @@ void RESET_HE_THONG(){
     lcd.setCursor(0, 1);lcd.print(" RESET: "); lcd.print( phantram );lcd.print(" %");   }  setup(); }
 
     if(xacthucrt != 4) { lcd.clear(); lcd.setCursor(1,0); lcd.print(" MAT KHAU SAI !");lcd.setCursor(0,1);lcd.print("VUI LONG THU LAI");  } 
-}
-
-void TIME_OPEN(){
-  if( (long)(millis() - time) > 3000  ){
-  analogWrite(A0, 0);
-  time = millis(); }
 }
 
 
