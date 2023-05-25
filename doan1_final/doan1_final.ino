@@ -12,8 +12,8 @@
 #include <WiFi.h>
 #include <Wire.h>
 /* ======================================== Wifi */
-const char *ssid = "conthỏtrắngcóconcacmàuđen";
-const char *password = "12345678";
+const char *ssid = "STU";
+const char *password = "stu.edu.vn";
 /* ======================================== define */
 #define I2Ckey            0x3F
 #define I2Clcd            0x27
@@ -238,6 +238,7 @@ void loop() {
       lcd.print("Cai Dat QR!");
       lcd.setCursor(3, 1);
       lcd.print("Quet Ma QR:");
+      QRCodeResult = "NANN";
       mode = 6;
       delay(1000);
   }
@@ -403,6 +404,7 @@ void Unlockk() {
   mode = 3;
 }
 void Lockk() {
+  QRCodeResult = "NANN";
   time2eout =0;
   timeeout = 0;
   mode = 4;
