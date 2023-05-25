@@ -43,21 +43,19 @@ void setup() {
   Serial.println();
   /* ---------------------------------------- */
   pinMode(4, OUTPUT); 
-  pinMode(13, INPUT);
+
   /* ---------------------------------------- Camera configuration. */
   configInitCamera();
   Serial.println();
 }
 /* ________________________________________________________________________________ */
 void loop() {
-  if (!digitalRead(13))
   qrScan();
 //temp2
   if (QRCodeResult == "http://en.m.wikipedia.org") digitalWrite(4, HIGH);
   if (QRCodeResult == "DH32112380_NGUYENTHANHPHU_01.01.2003") digitalWrite(4, LOW);
 }
-void dumpData(const struct quirc_data *data)
-{
+void dumpData(const struct quirc_data *data) {
   Serial.printf("Version: %d\n", data->version);
   Serial.printf("ECC level: %c\n", "MLHQ"[data->ecc_level]);
   Serial.printf("Mask: %d\n", data->mask);
@@ -84,7 +82,7 @@ uint8_t *image;
       Serial.println("Decoding FAILED");
       QRCodeResult = "NANN";
     } else {
-      Serial.printf("Decoding successful:\n");
+      Serial.printf("OK:\n");
       dumpData(&dataA);
     } 
     Serial.println();
@@ -131,7 +129,7 @@ void configInitCamera() {
   }
   // Drop down frame size for higher initial frame rate
   sensor_t *s = esp_camera_sensor_get();
-  s->set_framesize(s, FRAMESIZE_QVGA); // UXGA|SXGA|XGA|SVGA|VGA|CIF|QVGA|HQVGA|QQVGA
+  s->set_framesize(s, FRAMESIZE_VGA); // UXGA|SXGA|XGA|SVGA|VGA|CIF|QVGA|HQVGA|QQVGA
 
   Serial.println("Configure and initialize the camera successfully.");
   Serial.println();

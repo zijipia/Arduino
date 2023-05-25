@@ -5,6 +5,8 @@
 #include "quirc.h"
 #include "time.h"
 #include <Arduino.h>
+#include <cstring>
+#include <String.h>
 #include <EEPROM.h>
 #include <Keypad.h>
 #include <Keypad_I2C.h>
@@ -12,8 +14,8 @@
 #include <WiFi.h>
 #include <Wire.h>
 /* ======================================== Wifi */
-const char *ssid = "STU";
-const char *password = "stu.edu.vn";
+const char *ssid = "Nha Tro Tien Nghi P19";
+const char *password = "123456789";
 /* ======================================== define */
 #define I2Ckey            0x3F
 #define I2Clcd            0x27
@@ -50,6 +52,8 @@ struct quirc_data dataA;
 unsigned long timee;
 unsigned long time2eout =0;
 unsigned long timeeout = 0;
+unsigned long timeeoutSaimk = 0;
+
 bool timeSecond = true;
 bool LEDqr = false;
 const byte ROWS = 4;
@@ -72,6 +76,8 @@ byte wifires = 0;
 byte data_count = 0;
 byte key_state = 0;
 byte mode = 4;
+byte SaiMK = 0;
+byte SaiMKLan = 1;
 byte lockkk[] = {0b01110, 0b10001, 0b10001, 0b11111,
                  0b11011, 0b11011, 0b11111, 0b00000};
 byte clockkk[] = {0b01110, 0b10000, 0b10000, 0b11111,
@@ -218,21 +224,34 @@ void loop() {
       lcd.clear();
       writeStringToEEPROM(10, QRCodeResult);
       QRcodePass = readStringFromEEPROM(10);
+      digitalWrite(CoiBao, HIGH);
+      delay(50);
+      digitalWrite(CoiBao, LOW);
+      delay(100);
+      digitalWrite(CoiBao, HIGH);
+      delay(50);
+      digitalWrite(CoiBao, LOW);
+      qrScan();//xoa qr cu con lưu trong dataA
       QRCodeResult == "NANN";
       mode = 3;
     }
     break;
   }
-  if (last_press_key == '*' && key_state == 2) Lockk();
-  if (mode == 0 && (time2eout != 0) && (unsigned long)(millis() - time2eout) > 1000 * 60) Lockk();
+
+  if (last_press_key == '*' && key_state == 2) {
+    Lockk();
+  }
+
+  if (mode == 0 && time2eout != 0 && millis() - time2eout > 60000UL) {
+    Lockk();
+  }
 
   if (mode == 3) {
-    if (last_press_key == '0' && key_state == 2){
+    if (last_press_key == '0' && key_state == 2) {
       mode = 1;
       lcd.clear();
       delay(1000);
-      }
-    if (last_press_key == '#' && key_state == 2) {
+    } else if (last_press_key == '#' && key_state == 2) {
       lcd.clear();
       lcd.setCursor(3, 0);
       lcd.print("Cai Dat QR!");
@@ -241,43 +260,76 @@ void loop() {
       QRCodeResult = "NANN";
       mode = 6;
       delay(1000);
-  }
-    if ((timeeout != 0) && ((unsigned long)(millis() - timeeout) > 1000 * 60)) Lockk();
+    }
+
+    if (timeeout != 0 && millis() - timeeout > 60000UL) {
+      Lockk();
+    }
   }
 
-  if (mode == 5){
-  if ((timeeout != 0) && (unsigned long)(millis() - timeeout) > 1000 * 60) Lockk();
-  if (last_press_key == '0' && key_state == 2){
-    LEDqr = !LEDqr;
-    if (LEDqr){ 
-      digitalWrite(LEDPin, HIGH);
-      }else{
-      digitalWrite(LEDPin, LOW);
-      }
+  if (mode == 5) {
+    if (timeeout != 0 && millis() - timeeout > 60000UL) {
+      Lockk();
+    }
+
+    if (last_press_key == '0' && key_state == 2) {
+      LEDqr = !LEDqr;
+      digitalWrite(LEDPin, LEDqr ? HIGH : LOW);
       delay(1000);
     }
   }
-    
-  if (key && key == '#' && mode == 4){ 
+
+  if (key && key == '#' && mode == 4) {
     lcd.clear();
     lcd.setCursor(3, 0);
     lcd.print("Quet Ma QR:");
     timeeout = millis();
     mode = 5;
-    }
+  }
 
-  if (key && key != '#' && key != '*' && mode != 3 && mode != 5)
-    collectKey();
-    
+  if (key && key != '#' && key != '*' && mode != 3 && mode != 5) {
+    if (SaiMK < 4) {
+      collectKey();
+    } else if (timeeoutSaimk != 0 && millis() - timeeoutSaimk < 180000UL * (1 << (SaiMKLan - 1)) ) { 
+      // sử dụng toán tử dịch bit << để tính giá trị cấp số nhân, lấy 1 (hoặc 2^0) và dịch trái SaiMKLan - 1 lần để tính toán giá trị cấp số nhân tương ứng
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Ban Nhap Sai MK");
+      lcd.setCursor(2, 1);
+      lcd.print("Qua Nhieu Lan!");
+      delay(2000);
+      lcd.clear();
+      unsigned int remainingSeconds = (timeeoutSaimk + 180000UL * (1 << (SaiMKLan - 1)) - millis()) / 1000;
+      unsigned int minutes = remainingSeconds / 60;
+      remainingSeconds %= 60;
+
+      lcd.setCursor(0, 0);
+      lcd.print("Hay Thu Lai Sau:");
+      lcd.setCursor(0, 1);
+      lcd.print(minutes);
+      lcd.print(" Phut ");
+      lcd.print(remainingSeconds);
+      lcd.print(" Giay");
+      delay(2000);
+      lcd.clear();
+      mode = 4;
+    } else {
+      timeeoutSaimk = 0;
+      SaiMK = 0;
+      SaiMKLan++;
+      collectKey();
+    }
+  }
+
   if (!digitalRead(PhimCamUng)) {
-    if ((mode == 0) || (mode == 4)) {
+    if (mode == 0 || mode == 4) {
       Unlockk();
       clearData();
     } else if (mode == 3) {
       Lockk();
     }
   }
-
+  //phan 3
   if (data_count == Password_Lenght - 1) {
     if (mode == 0) {
       lcd.clear();
@@ -285,10 +337,14 @@ void loop() {
       if (!strcmp(Data, Master)) {
         Unlockk();
       } else {
+        SaiMK ++;
+        timeeoutSaimk = millis();
         lcd.setCursor(2, 0);
-        lcd.print("Mat Khau");
-        lcd.setCursor(4, 1);
-        lcd.print("Khong Dung!");
+        lcd.print("Sai Mat Khau");
+        lcd.setCursor(1, 1);
+        lcd.print("con ");
+        lcd.print(4 - SaiMK);
+        lcd.print(" lan thu!");
         delay(2000);
         lcd.clear();
         mode = 4;
@@ -299,9 +355,7 @@ void loop() {
     } else if (mode == 1) {
       lcd.clear();
       mode = 2;
-      for (int i = 0; i < Password_Lenght; i = i + 1) {
-        Data2[i] = Data[i];
-      }
+      memcpy(Data2, Data, Password_Lenght);
       clearData();
     } else if (mode == 2) {
       if (!strcmp(Data, Data2)) {
@@ -341,20 +395,15 @@ void loop() {
 }
 /* ________________________________________________________________________________ */
 /* ________________________________________________________________________________ QR - quirc */
-void dumpData(const struct quirc_data *data) {
-  Serial.printf("Version: %d\n", data->version);
-  Serial.printf("ECC level: %c\n", "MLHQ"[data->ecc_level]);
-  Serial.printf("Mask: %d\n", data->mask);
-  Serial.printf("Length: %d\n", data->payload_len);
-  Serial.printf("Payload: %s\n", data->payload);
-  QRCodeResult = (const char *)data->payload;
-}
-void qrScan(){
-struct quirc *qr;
-uint8_t *image;
+void qrScan() {
+  struct quirc *qr;
+  uint8_t *image;
   qr = quirc_new();
   fb = esp_camera_fb_get();
-  if (!fb)  Serial.println("Camera capture failed");
+  if (!fb) {
+    Serial.println("Camera capture failed");
+    return;
+  }
   quirc_resize(qr, fb->width, fb->height);
   image = quirc_begin(qr, NULL, NULL);
   memcpy(image, fb->buf, fb->len);
@@ -364,13 +413,19 @@ uint8_t *image;
   if (count > 0) {
     quirc_extract(qr, 0, &codee);
     err = quirc_decode(&codee, &dataA);
-    if (err){
+    if (err) {
       Serial.println("Decoding FAILED");
       QRCodeResult = "NANN";
     } else {
-      Serial.printf("OK:\n");
-      dumpData(&dataA);
-    } 
+      Serial.println("OK:");
+      Serial.printf("Version: %d\n", dataA.version);
+      Serial.printf("ECC level: %c\n", "MLHQ"[dataA.ecc_level]);
+      Serial.printf("Mask: %d\n", dataA.mask);
+      Serial.printf("Length: %d\n", dataA.payload_len);
+      Serial.printf("Payload: %s\n", dataA.payload);
+      QRCodeResult = String(reinterpret_cast<const char*>(dataA.payload), dataA.payload_len);
+      //reinterpret_cast chuyển đổi mảng uint8_t thành một con trỏ const char*, và sau đó tạo một đối tượng String từ con trỏ đó và độ dài của payload (dataA.payload_len).
+    }
     Serial.println();
   } 
 
@@ -380,7 +435,6 @@ uint8_t *image;
 }
 /* ________________________________________________________________________________ main func */
 void Unlockk() {
-  QRCodeResult = "NANN";
   lcd.clear();
   lcd.setCursor(0, 1);
   lcd.write(1);
@@ -399,15 +453,15 @@ void Unlockk() {
   delay(50);
   digitalWrite(CoiBao, LOW);
   delay(800);
-  timeeout = millis();
   lcd.clear();
+  timeeout = millis();
+  SaiMK = 0 ;
+  SaiMKLan = 1;
+  timeeoutSaimk = 0;
+  QRCodeResult = "NANN";
   mode = 3;
 }
 void Lockk() {
-  QRCodeResult = "NANN";
-  time2eout =0;
-  timeeout = 0;
-  mode = 4;
   lcd.clear();
   lcd.setCursor(4, 0);
   lcd.print("Da Khoa");
@@ -422,6 +476,10 @@ void Lockk() {
   delay(1000);
   clearData();
   lcd.clear();
+  QRCodeResult = "NANN";
+  time2eout =0;
+  timeeout = 0;
+  mode = 4;
 }
 void collectKey() {
   time2eout = millis();
