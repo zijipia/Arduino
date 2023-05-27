@@ -189,13 +189,13 @@ void loop() {
         lcd.print("Nhap Lai MK");
         break;
     case 3:
-        if ((unsigned long)(millis() - timee) > 1000) {
+        if ((millis() - timee) > 1000UL) {
             timee = millis();
             printLocalTime(1);
     }
         break;
     case 4:
-        if ((unsigned long)(millis() - timee) > 1000) {
+        if ((millis() - timee) > 1000UL) {
             timee = millis();
             printLocalTime(0);
     }
@@ -267,11 +267,10 @@ void loop() {
     }
   }
 
-  if (mode == 5) {
+  if (mode == 5 || mode == 6) {
     if (timeeout != 0 && millis() - timeeout > 60000UL) {
       Lockk();
     }
-
     if (last_press_key == '0' && key_state == 2) {
       LEDqr = !LEDqr;
       digitalWrite(LEDPin, LEDqr ? HIGH : LOW);
@@ -291,7 +290,6 @@ void loop() {
     if (SaiMK < 4) {
       collectKey();
     } else if (timeeoutSaimk != 0 && millis() - timeeoutSaimk < 180000UL * (1 << (SaiMKLan - 1)) ) { 
-      // sử dụng toán tử dịch bit << để tính giá trị cấp số nhân, lấy 1 (hoặc 2^0) và dịch trái SaiMKLan - 1 lần để tính toán giá trị cấp số nhân tương ứng
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("Ban Nhap Sai MK");
@@ -322,7 +320,7 @@ void loop() {
   }
 
   if (!digitalRead(PhimCamUng)) {
-    if (mode == 0 || mode == 4) {
+    if (mode == 0 || mode == 4 || mode == 5 ) {
       Unlockk();
       clearData();
     } else if (mode == 3) {
